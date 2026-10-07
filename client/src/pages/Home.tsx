@@ -138,11 +138,12 @@ function LoginScreen() {
           <div className="login-card">
             <div className="login-card-heading"><div className="card-icon"><LockKeyhole size={21} /></div><div><span className="mini-label">{adminMode ? "ÁREA ADMINISTRATIVA" : "ACESSO POR KEY"}</span><h2>{adminMode ? "Entrar como administrador" : "Entrar no painel"}</h2></div></div>
             <p className="card-description">{adminMode ? "Use a credencial configurada no servidor." : "Informe sua key para validar o acesso e sincronizar este dispositivo."}</p>
+            <div className="login-mode-switch" role="group" aria-label="Tipo de acesso"><button type="button" className={!adminMode ? "active" : ""} aria-pressed={!adminMode} onClick={() => { setAdminMode(false); setAccessKey(""); }}><KeyRound size={14} /> Minha key</button><button type="button" className={adminMode ? "active" : ""} aria-pressed={adminMode} onClick={() => { setAdminMode(true); setAccessKey(""); }}><ShieldCheck size={14} /> Admin</button></div>
             <form onSubmit={submit} className="login-form">
               <label><span>{adminMode ? "Chave de administrador" : "Chave de acesso"}</span><div className="input-shell"><KeyRound size={17} /><input value={accessKey} onChange={event => setAccessKey(event.target.value)} placeholder={adminMode ? "Chave configurada no servidor" : "XRC-XXXX-XXXXXXXXXX"} type="password" autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required /><button type="button" className="input-action" onClick={() => setAccessKey("")} aria-label="Limpar chave"><X size={15} /></button></div></label>
               <button className="primary-button login-button" disabled={pending}>{pending ? <><RefreshCw size={17} className="spin" /> VALIDANDO...</> : <>{adminMode ? "ENTRAR NO ADMIN" : "ENTRAR NO PAINEL"}<ChevronRight size={18} /></>}</button>
             </form>
-            <button type="button" className="text-button admin-toggle" onClick={() => { setAdminMode(value => !value); setAccessKey(""); }}>{adminMode ? "Voltar para acesso de usuário" : "Acesso administrativo"}<ChevronRight size={14} /></button>
+
             <div className="secure-footer"><Wifi size={13} /> CONEXÃO CRIPTOGRAFADA <span /> <span>SESSÃO PRIVADA</span></div>
           </div>
         </div>
@@ -176,7 +177,7 @@ function UserShell({ children, view, onChangeView, session, onLogout }: { childr
     { id: "favorites", label: "Favoritos", icon: Star },
     { id: "info", label: "Sobre", icon: CircleHelp },
   ];
-  return <div className="app-shell"><aside className="app-sidebar"><div className="sidebar-top"><AppLogo /><span className="sidebar-divider" /></div><div className="sidebar-menu"><span className="sidebar-section-label">MENU PRINCIPAL</span>{nav.map(item => <button key={item.id} className={`sidebar-link ${view === item.id ? "active" : ""}`} onClick={() => onChangeView(item.id)}><item.icon size={18} /><span>{item.label}</span>{view === item.id && <i />}</button>)}</div><div className="sidebar-bottom"><div className="sidebar-security"><ShieldCheck size={16} /><div><b>Licença protegida</b><span>HWID vinculado</span></div></div><button className="sidebar-profile" onClick={() => onChangeView("profile")}><div className="avatar">{String(session.username ?? "Usuário").slice(0, 1).toUpperCase()}</div><div><b>{String(session.username ?? "Usuário")}</b><span>{planName(session.planId)}</span></div><ChevronRight size={15} /></button></div></aside><div className="mobile-header"><AppLogo compact /><button className="mobile-profile" onClick={() => onChangeView("profile")}><div className="avatar">{String(session.username ?? "Usuário").slice(0, 1).toUpperCase()}</div></button></div><main className="app-main">{children}</main><nav className="bottom-nav">{nav.map(item => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => onChangeView(item.id)}><item.icon size={19} /><span>{item.label}</span></button>)}<button className={view === "profile" ? "active" : ""} onClick={() => onChangeView("profile")}><UserRound size={19} /><span>Conta</span></button></nav><InstallNotice /></div>;
+  return <div className="app-shell"><aside className="app-sidebar"><div className="sidebar-top"><AppLogo /><span className="sidebar-divider" /></div><div className="sidebar-menu"><span className="sidebar-section-label">MENU PRINCIPAL</span>{nav.map(item => <button key={item.id} className={`sidebar-link ${view === item.id ? "active" : ""}`} onClick={() => onChangeView(item.id)}><item.icon size={18} /><span>{item.label}</span>{view === item.id && <i />}</button>)}</div><div className="sidebar-bottom"><div className="sidebar-security"><ShieldCheck size={16} /><div><b>Licença protegida</b><span>HWID vinculado</span></div></div><button className="sidebar-profile" onClick={() => onChangeView("profile")}><div className="avatar">{String(session.username ?? "Usuário").slice(0, 1).toUpperCase()}</div><div><b>{String(session.username ?? "Usuário")}</b><span>{planName(session.planId)}</span></div><ChevronRight size={15} /></button></div></aside><div className="mobile-header"><AppLogo compact /><button className="mobile-profile" onClick={() => onChangeView("profile")} aria-label="Abrir conta"><div className="avatar">{String(session.username ?? "Usuário").slice(0, 1).toUpperCase()}</div></button></div><nav className="mobile-top-nav" aria-label="Navegação principal">{nav.map(item => <button key={item.id} className={view === item.id ? "active" : ""} aria-current={view === item.id ? "page" : undefined} onClick={() => onChangeView(item.id)}><item.icon size={15} /><span>{item.label}</span></button>)}</nav><main className="app-main">{children}</main><nav className="bottom-nav">{nav.map(item => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => onChangeView(item.id)}><item.icon size={19} /><span>{item.label}</span></button>)}<button className={view === "profile" ? "active" : ""} onClick={() => onChangeView("profile")}><UserRound size={19} /><span>Conta</span></button></nav></div>;
 }
 
 function PageHeading({ kicker, title, description, action }: { kicker: string; title: string; description: string; action?: React.ReactNode }) {
@@ -212,29 +213,36 @@ function AuxilioPage({ onOpenGenerator }: { onOpenGenerator: () => void }) {
     { id: "ajuda" as const, label: "AJUDA", icon: CircleHelp },
   ];
   const descriptions = {
-    mira: "Preferências pessoais para sua rotina de treino",
-    arma: "Organize perfis de sensibilidade por estilo",
-    otimizacao: "Ajustes visuais deste painel",
-    ajuda: "Guias e acesso rápido ao gerador",
+    mira: "Organize suas preferências de treino e foco.",
+    arma: "Compare perfis sem alterar os valores do jogo.",
+    otimizacao: "Personalize a aparência desta interface.",
+    ajuda: "Acesso rápido e orientações para o gerador.",
   };
   const settings = {
     mira: [
-      { key: "warmup", label: "Lembrete de aquecimento", description: "Exibe um lembrete antes de uma sessão de treino" },
-      { key: "tracking", label: "Dicas de rastreamento", description: "Mostra sugestões de prática sem controlar o jogo" },
-      { key: "breaks", label: "Pausa entre partidas", description: "Lembrete local para fazer pausas regulares" },
+      { key: "warmup", label: "Lembrete de aquecimento", description: "Aviso antes de começar uma sessão" },
+      { key: "tracking", label: "Dicas de rastreamento", description: "Sugestões para praticar manualmente" },
+      { key: "breaks", label: "Pausa entre partidas", description: "Lembrete para fazer pausas regulares" },
     ],
     arma: [
-      { key: "balanced", label: "Perfil equilibrado", description: "Organização visual para uma configuração geral" },
-      { key: "precision", label: "Perfil de precisão", description: "Atalho para comparar valores do gerador" },
+      { key: "balanced", label: "Perfil equilibrado", description: "Atalho para uma configuração geral" },
+      { key: "precision", label: "Perfil de precisão", description: "Compare os valores do gerador" },
     ],
     otimizacao: [
-      { key: "compact", label: "Modo compacto", description: "Preferência visual guardada somente nesta tela" },
-      { key: "reduceMotion", label: "Reduzir animações", description: "Diminui animações da interface do painel" },
-      { key: "quietNotices", label: "Avisos discretos", description: "Exibe mensagens de orientação com menos destaque" },
+      { key: "compact", label: "Modo compacto", description: "Reduz o espaço desta tela" },
+      { key: "reduceMotion", label: "Reduzir animações", description: "Movimento mais discreto na interface" },
+      { key: "quietNotices", label: "Avisos discretos", description: "Mensagens com menos destaque" },
     ],
   };
-  const heading = tab === "mira" ? "MIRA" : tab === "arma" ? "PERFIS" : tab === "otimizacao" ? "PAINEL" : "AJUDA";
-  return <div className="aux-page"><div className="aux-window"><aside className="aux-rail"><div className="aux-brand"><Crosshair size={19} /></div>{tabs.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)} title={item.label} aria-label={item.label}><item.icon size={18} /></button>)}<div className="aux-rail-line" /><span className="aux-status-dot" /></aside><section className="aux-content"><header className="aux-header"><div><span className="aux-kicker">BLATADOR DE XRC</span><h1>{heading}</h1><p>{descriptions[tab]}</p></div><button className="aux-close" onClick={onOpenGenerator} aria-label="Voltar ao gerador"><X size={17} /></button></header>{tab !== "ajuda" ? <><div className="aux-scope-note"><ShieldCheck size={16} /><span>Preferências locais: nada nesta aba altera ou controla o jogo.</span></div><div className="aux-panel-list">{settings[tab].map(item => <AuxToggle key={item.key} label={item.label} description={item.description} value={Boolean(preferences[item.key])} onClick={() => toggle(item.key)} />)}</div><button className="aux-open-generator" onClick={onOpenGenerator}><Crosshair size={16} /> Abrir gerador de sensibilidade <ChevronRight size={16} /></button></> : <div className="aux-help-content"><div className="aux-help-card"><span className="aux-help-icon"><SlidersHorizontal size={20} /></span><div><b>Como usar o gerador</b><p>Escolha o sistema, o aparelho e o nível de performance para criar valores de referência. Teste e ajuste manualmente conforme sua preferência.</p></div></div><div className="aux-help-card"><span className="aux-help-icon"><KeyRound size={20} /></span><div><b>Acesso e dispositivo</b><p>Sua key é vinculada ao primeiro dispositivo validado. Se precisar trocar de aparelho, entre em contato com o administrador.</p></div></div><div className="aux-help-safe"><ShieldCheck size={17} /><span>O painel não injeta arquivos, não modifica processos do jogo e não automatiza ações.</span></div><button className="aux-open-generator" onClick={onOpenGenerator}><Crosshair size={16} /> Abrir gerador de sensibilidade <ChevronRight size={16} /></button></div>}<footer className="aux-footer">Todos os direitos reservados <b>Blatador de Xrc</b></footer></section></div></div>;
+  const heading = tab === "mira" ? "Mira & treino" : tab === "arma" ? "Perfis" : tab === "otimizacao" ? "Painel" : "Ajuda";
+  const tabNumber = String(tabs.findIndex(item => item.id === tab) + 1).padStart(2, "0");
+  return <div className="aux-page"><section className="aux-window">
+    <header className="aux-topbar"><div className="aux-brand-lockup"><span className="aux-brand"><Crosshair size={18} /></span><span><b>BLATADOR DE XRC</b><small>PAINEL DE AUXÍLIO</small></span></div><div className="aux-window-actions"><span className="aux-session-chip"><i /> LOCAL</span><button className="aux-close" onClick={onOpenGenerator} aria-label="Voltar ao gerador"><X size={16} /></button></div></header>
+    <nav className="aux-tabs" aria-label="Abas do painel de auxílio">{tabs.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} aria-current={tab === item.id ? "page" : undefined} onClick={() => setTab(item.id)}><item.icon size={15} /><span>{item.label}</span></button>)}</nav>
+    <main className="aux-content"><header className="aux-section-heading"><div><span className="aux-kicker">{tabNumber} / 04 <i /> {tab === "ajuda" ? "SUPORTE" : "PREFERÊNCIAS"}</span><h1>{heading}</h1><p>{descriptions[tab]}</p></div><span className="aux-heading-mark"><Crosshair size={18} /></span></header>
+      {tab !== "ajuda" ? <><div className="aux-scope-note"><ShieldCheck size={14} /><span>Controles locais: não alteram nem automatizam o jogo.</span></div><div className="aux-panel-list">{settings[tab].map(item => <AuxToggle key={item.key} label={item.label} description={item.description} value={Boolean(preferences[item.key])} onClick={() => toggle(item.key)} />)}</div><button className="aux-open-generator" onClick={onOpenGenerator}><Crosshair size={15} /> ABRIR GERADOR <ChevronRight size={16} /></button></> : <div className="aux-help-content"><div className="aux-help-card"><span className="aux-help-icon"><SlidersHorizontal size={17} /></span><div><b>Gerar uma configuração</b><p>Escolha sistema, aparelho e desempenho. Depois, ajuste os valores manualmente no jogo.</p></div></div><div className="aux-help-card"><span className="aux-help-icon"><KeyRound size={17} /></span><div><b>Key e dispositivo</b><p>A key é vinculada ao primeiro aparelho validado. Para trocar, fale com o administrador.</p></div></div><div className="aux-help-safe"><ShieldCheck size={15} /><span>Este painel não injeta arquivos nem controla processos ou entradas do jogo.</span></div><button className="aux-open-generator" onClick={onOpenGenerator}><Crosshair size={15} /> ABRIR GERADOR <ChevronRight size={16} /></button></div>}
+    </main><footer className="aux-footer"><span><i /> PREFERÊNCIAS DESTA SESSÃO</span><b>XRC · 01</b></footer>
+  </section></div>;
 }
 function AuxToggle({ label, description, value, onClick }: { label: string; description: string; value: boolean; onClick: () => void }) { return <button className="aux-toggle-row" onClick={onClick} aria-pressed={value}><span><b>{label}</b><small>{description}</small></span><i className={value ? "on" : ""}><em /></i></button>; }
 
