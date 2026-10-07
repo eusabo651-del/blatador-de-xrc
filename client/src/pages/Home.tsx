@@ -1,0 +1,327 @@
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  Apple,
+  BadgeCheck,
+  Ban,
+  Check,
+  ChevronRight,
+  CircleHelp,
+  Clipboard,
+  Clock3,
+  Copy,
+  Crosshair,
+  Crown,
+  Gauge,
+  Grid3X3,
+  Globe2,
+  History,
+  KeyRound,
+  Laptop,
+  LayoutDashboard,
+  LockKeyhole,
+  SlidersHorizontal,
+  LogOut,
+  Menu,
+  MonitorSmartphone,
+  MoreHorizontal,
+  PackagePlus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Share2,
+  Settings2,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Star,
+  Trash2,
+  UserRound,
+  Users,
+  Wifi,
+  X,
+  Zap,
+} from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import {
+  DURATION_UNITS,
+  OPERATING_SYSTEMS,
+  PERFORMANCE_LABELS,
+  PERFORMANCE_LEVELS,
+  PLAN_CATALOG,
+  OS_LABELS,
+  planName,
+  type SensitivityValues,
+} from "@shared/rbxis";
+
+const androidDevices = ["Samsung Galaxy S24", "Samsung Galaxy A54", "Motorola Edge 40", "Xiaomi Redmi Note 13", "Poco X6 Pro", "Asus ROG Phone 7", "OUTROS AND"];
+const iosDevices = ["iPhone 15 Pro", "iPhone 14", "iPhone 13", "iPhone 12", "iPhone 11", "iPhone SE (2022)", "OUTROS IPH"];
+const valueLabels: { key: keyof SensitivityValues; label: string; icon: string }[] = [
+  { key: "general", label: "Geral", icon: "◎" },
+  { key: "redDot", label: "Ponto Vermelho", icon: "◉" },
+  { key: "scope2x", label: "Mira 2x", icon: "2×" },
+  { key: "scope4x", label: "Mira 4x", icon: "4×" },
+  { key: "awm", label: "AWM", icon: "⌁" },
+];
+
+type View = "home" | "history" | "favorites" | "auxilio" | "info" | "profile";
+type AdminView = "overview" | "licenses";
+
+function getDeviceId() {
+  if (typeof window === "undefined") return "server-device";
+  const stored = window.localStorage.getItem("rbxis-device-id");
+  if (stored) return stored;
+  const value = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  window.localStorage.setItem("rbxis-device-id", value);
+  return value;
+}
+
+function formatDate(value: string | Date | null | undefined) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatExpiry(value: string | Date | null | undefined) {
+  if (!value) return "—";
+  const diff = Math.max(0, new Date(value).getTime() - Date.now());
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return days === 1 ? "1 dia" : `${days} dias`;
+}
+
+function AppLogo({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={`brand-mark ${compact ? "brand-mark-compact" : ""}`}>
+      <div className="brand-icon"><Crosshair size={compact ? 17 : 20} strokeWidth={2.6} /></div>
+      {!compact && <div><span className="brand-name">BLATADOR</span><span className="brand-caption">DE XRC</span></div>}
+    </div>
+  );
+}
+
+function LoadingScreen() {
+  return <div className="loading-screen"><div className="loading-orbit"><Crosshair size={28} /></div><p>CARREGANDO PAINEL</p><span>Conectando com segurança...</span></div>;
+}
+
+function LoginScreen() {
+  const [adminMode, setAdminMode] = useState(false);
+  const [accessKey, setAccessKey] = useState("");
+  useEffect(() => { navigator.serviceWorker?.register("/sw.js").catch(() => undefined); }, []);
+  const login = trpc.auth.login.useMutation({
+    onSuccess: data => { localStorage.removeItem("rbxis_admin_mode_v3"); localStorage.setItem("rbxis_session_token_v3", data.sessionToken); window.location.reload(); },
+    onError: error => toast.error(error.message),
+  });
+  const adminLogin = trpc.auth.adminLogin.useMutation({
+    onSuccess: data => { localStorage.setItem("rbxis_admin_mode_v3", "1"); localStorage.setItem("rbxis_session_token_v3", data.sessionToken); window.location.reload(); },
+    onError: error => toast.error(error.message),
+  });
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (adminMode) adminLogin.mutate({ adminKey: accessKey });
+    else login.mutate({ accessKey, deviceId: getDeviceId() });
+  }
+
+  const pending = login.isPending || adminLogin.isPending;
+  return (
+    <main className="login-shell">
+      <div className="login-noise" />
+      <div className="login-split-glow" />
+      <header className="login-header"><AppLogo /><div className="secure-chip"><ShieldCheck size={14} /> SISTEMA PROTEGIDO</div></header>
+      <section className="login-content">
+        <div className="login-copy">
+          <span className="eyebrow"><span className="eyebrow-dot" /> ACESSO EXCLUSIVO</span>
+          <h1>BLATADOR<br /><em>DE XRC</em></h1>
+          <p>Acesse seu gerador de sensibilidade com uma key vinculada ao seu dispositivo.</p>
+          <div className="login-stats"><div><b>01</b><span>ANDROID<br />E IOS</span></div><div><b>∞</b><span>PERFIS<br />PERSONALIZADOS</span></div></div>
+        </div>
+        <div className="login-card-wrap">
+          <div className="login-card-topline"><span className="red-line" /><span>BLATADOR / {adminMode ? "ADMIN" : "XRC ACCESS"}</span><span className="online-dot" /></div>
+          <div className="login-card">
+            <div className="login-card-heading"><div className="card-icon"><LockKeyhole size={21} /></div><div><span className="mini-label">{adminMode ? "ÁREA ADMINISTRATIVA" : "ACESSO POR KEY"}</span><h2>{adminMode ? "Entrar como administrador" : "Entrar no painel"}</h2></div></div>
+            <p className="card-description">{adminMode ? "Use a credencial configurada no servidor." : "Informe sua key para validar o acesso e sincronizar este dispositivo."}</p>
+            <form onSubmit={submit} className="login-form">
+              <label><span>{adminMode ? "Chave de administrador" : "Chave de acesso"}</span><div className="input-shell"><KeyRound size={17} /><input value={accessKey} onChange={event => setAccessKey(event.target.value)} placeholder={adminMode ? "Chave configurada no servidor" : "XRC-XXXX-XXXXXXXXXX"} type="password" autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required /><button type="button" className="input-action" onClick={() => setAccessKey("")} aria-label="Limpar chave"><X size={15} /></button></div></label>
+              <button className="primary-button login-button" disabled={pending}>{pending ? <><RefreshCw size={17} className="spin" /> VALIDANDO...</> : <>{adminMode ? "ENTRAR NO ADMIN" : "ENTRAR NO PAINEL"}<ChevronRight size={18} /></>}</button>
+            </form>
+            <button type="button" className="text-button admin-toggle" onClick={() => { setAdminMode(value => !value); setAccessKey(""); }}>{adminMode ? "Voltar para acesso de usuário" : "Acesso administrativo"}<ChevronRight size={14} /></button>
+            <div className="secure-footer"><Wifi size={13} /> CONEXÃO CRIPTOGRAFADA <span /> <span>SESSÃO PRIVADA</span></div>
+          </div>
+        </div>
+      </section>
+      <footer className="login-footer"><span>BLATADOR DE XRC / 2026</span><span>Sensibilidade. Do seu jeito.</span><span className="footer-red">●</span></footer>
+      <InstallNotice />
+    </main>
+  );
+}
+
+function InstallNotice() {
+  const [visible, setVisible] = useState(true);
+  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [iosGuide, setIosGuide] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(false), 4000);
+    const capture = (event: Event) => { event.preventDefault(); setInstallEvent(event as BeforeInstallPromptEvent); };
+    window.addEventListener("beforeinstallprompt", capture);
+    return () => { window.clearTimeout(timer); window.removeEventListener("beforeinstallprompt", capture); };
+  }, []);
+  if (!visible) return null;
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return <>{<div className="install-notice"><div className="notice-pulse"><MonitorSmartphone size={18} /></div><div><b>Adicione o painel à tela inicial</b><span>Acesse o painel como um app no seu telefone.</span></div><button onClick={async () => { if (installEvent) { await installEvent.prompt(); setVisible(false); } else if (isIos) setIosGuide(true); else if (navigator.share) { await navigator.share({ title: "BLATADOR DE XRC", text: "Abrir o painel", url: window.location.href }); setVisible(false); } else toast.info("Toque no menu Compartilhar do navegador e escolha 'Adicionar à tela inicial'."); }} aria-label="Adicionar à tela inicial"><ChevronRight size={18} /></button><button className="notice-close" onClick={() => setVisible(false)} aria-label="Fechar aviso"><X size={15} /></button></div>}{iosGuide && <div className="ios-install-guide" role="dialog" aria-modal="true"><div className="ios-guide-card"><div className="ios-guide-icon"><Share2 size={22} /></div><span className="eyebrow"><span className="eyebrow-dot" /> SAFARI / IPHONE</span><h2>Adicionar à Tela de Início</h2><p>Toque no ícone <b>Compartilhar</b> na barra inferior do Safari, como na imagem, e depois escolha <b>Adicionar à Tela de Início</b>.</p><div className="ios-share-hint"><Share2 size={25} /><span>Ícone Compartilhar</span><ChevronRight size={16} /><span>Adicionar à Tela de Início</span></div><button className="primary-button" onClick={() => setIosGuide(false)}>Entendi</button></div></div>}</>;
+}
+
+function UserShell({ children, view, onChangeView, session, onLogout }: { children: React.ReactNode; view: View; onChangeView: (view: View) => void; session: { username: string; planId: string; expiresAt: Date | string; deviceId?: string | null }; onLogout: () => void }) {
+  const nav: { id: View; label: string; icon: React.ElementType }[] = [
+    { id: "home", label: "Gerador", icon: LayoutDashboard },
+    { id: "auxilio", label: "Auxílio", icon: SlidersHorizontal },
+    { id: "history", label: "Histórico", icon: History },
+    { id: "favorites", label: "Favoritos", icon: Star },
+    { id: "info", label: "Sobre", icon: CircleHelp },
+  ];
+  return <div className="app-shell"><aside className="app-sidebar"><div className="sidebar-top"><AppLogo /><span className="sidebar-divider" /></div><div className="sidebar-menu"><span className="sidebar-section-label">MENU PRINCIPAL</span>{nav.map(item => <button key={item.id} className={`sidebar-link ${view === item.id ? "active" : ""}`} onClick={() => onChangeView(item.id)}><item.icon size={18} /><span>{item.label}</span>{view === item.id && <i />}</button>)}</div><div className="sidebar-bottom"><div className="sidebar-security"><ShieldCheck size={16} /><div><b>Licença protegida</b><span>HWID vinculado</span></div></div><button className="sidebar-profile" onClick={() => onChangeView("profile")}><div className="avatar">{String(session.username ?? "Usuário").slice(0, 1).toUpperCase()}</div><div><b>{String(session.username ?? "Usuário")}</b><span>{planName(session.planId)}</span></div><ChevronRight size={15} /></button></div></aside><div className="mobile-header"><AppLogo compact /><button className="mobile-profile" onClick={() => onChangeView("profile")}><div className="avatar">{String(session.username ?? "Usuário").slice(0, 1).toUpperCase()}</div></button></div><main className="app-main">{children}</main><nav className="bottom-nav">{nav.map(item => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => onChangeView(item.id)}><item.icon size={19} /><span>{item.label}</span></button>)}<button className={view === "profile" ? "active" : ""} onClick={() => onChangeView("profile")}><UserRound size={19} /><span>Conta</span></button></nav><InstallNotice /></div>;
+}
+
+function PageHeading({ kicker, title, description, action }: { kicker: string; title: string; description: string; action?: React.ReactNode }) {
+  return <div className="page-heading"><div><span className="eyebrow"><span className="eyebrow-dot" /> {kicker}</span><h1>{title}</h1><p>{description}</p></div>{action}</div>;
+}
+
+function GeneratorPage({ session }: { session: { username: string; planId: string; expiresAt: Date | string } }) {
+  const [operatingSystem, setOperatingSystem] = useState<(typeof OPERATING_SYSTEMS)[number]>("android");
+  const [device, setDevice] = useState(androidDevices[0]);
+  const [performance, setPerformance] = useState<(typeof PERFORMANCE_LEVELS)[number]>("high");
+  const [result, setResult] = useState<{ values: SensitivityValues; historyId: number } | null>(null);
+  const generate = trpc.generator.generate.useMutation({ onSuccess: data => { setResult(data); toast.success("Sensibilidade gerada com sucesso"); }, onError: error => toast.error(error.message) });
+  const favorite = trpc.generator.toggleFavorite.useMutation({ onSuccess: () => toast.success("Favoritos atualizados") });
+  const devices = operatingSystem === "android" ? androidDevices : iosDevices;
+  useEffect(() => setDevice(devices[0]), [operatingSystem]);
+  const isFavorited = false;
+  return <div className="page-view"><div className="topbar"><div><span className="topbar-kicker">PAINEL DE CONTROLE</span><h2>Olá, {session.username}<span className="wave">✦</span></h2></div><div className="topbar-actions"><div className="license-pill"><span className="online-dot" /> LICENÇA ATIVA <b>{formatExpiry(session.expiresAt)}</b></div><button className="icon-button" onClick={() => toast.info("Tudo sincronizado")} aria-label="Sincronizar"><RefreshCw size={17} /></button></div></div><section className="hero-panel"><div className="hero-copy"><span className="tag tag-red"><Sparkles size={13} /> SMART GENERATOR</span><h1>Seu perfil.<br /><strong>Sua sensibilidade.</strong></h1><p>Ajuste os parâmetros abaixo e gere uma configuração pensada para o seu dispositivo.</p><div className="hero-meta"><span><BadgeCheck size={15} /> Configuração personalizada</span><span><Zap size={15} /> Resultado instantâneo</span></div></div><div className="hero-crosshair"><div className="crosshair-ring ring-one" /><div className="crosshair-ring ring-two" /><div className="crosshair-center"><Crosshair size={46} /></div><span className="cross-label label-top">PRECISÃO</span><span className="cross-label label-side">XRC / 01</span></div></section><div className="section-intro"><div><span className="step-index">01 — 03</span><h2>Configure seu setup</h2></div><p>Escolha o sistema, o aparelho e o nível de performance.</p></div><section className="config-grid"><div className="config-card"><div className="config-card-header"><div><span className="card-step">01</span><h3>Sistema operacional</h3></div><span className="config-status"><Check size={12} /> PRONTO</span></div><div className="os-options">{OPERATING_SYSTEMS.map(os => <button key={os} className={`os-option ${operatingSystem === os ? "selected" : ""}`} onClick={() => setOperatingSystem(os)}>{os === "android" ? <Smartphone size={28} /> : <Apple size={28} />}<span>{OS_LABELS[os]}</span>{operatingSystem === os && <b><Check size={13} /></b>}</button>)}</div></div><div className="config-card device-card"><div className="config-card-header"><div><span className="card-step">02</span><h3>Seu aparelho</h3></div><Search size={17} className="muted-icon" /></div><label className="select-shell"><Smartphone size={17} /><select value={device} onChange={event => setDevice(event.target.value)}>{devices.map(item => <option key={item}>{item}</option>)}</select><ChevronRight size={16} /></label><div className="device-detected"><span className="device-signal"><span /><span /><span /></span><span>Dispositivo detectado</span><b>HWID OK</b></div></div><div className="config-card performance-card"><div className="config-card-header"><div><span className="card-step">03</span><h3>Nível de performance</h3></div><Gauge size={17} className="muted-icon" /></div><div className="performance-options">{PERFORMANCE_LEVELS.map(level => <button key={level} className={`performance-option ${performance === level ? "selected" : ""}`} onClick={() => setPerformance(level)}><span className="performance-bars"><i /><i /><i /></span><span><b>{PERFORMANCE_LABELS[level]}</b><small>{level === "low" ? "Economia" : level === "medium" ? "Balanceado" : "Máximo"}</small></span></button>)}</div></div></section><div className="generate-row"><span><LockKeyhole size={14} /> Os dados são processados com segurança.</span><button className="primary-button generate-button" onClick={() => generate.mutate({ operatingSystem, device, performance })} disabled={generate.isPending}>{generate.isPending ? <><RefreshCw size={17} className="spin" /> GERANDO...</> : <><Sparkles size={17} /> GERAR SENSIBILIDADE <ChevronRight size={18} /></>}</button></div>{result && <ResultCard values={result.values} historyId={result.historyId} isFavorited={isFavorited} onFavorite={() => result.historyId && favorite.mutate({ historyId: result.historyId })} />}</div>;
+}
+
+function ResultCard({ values, historyId, isFavorited, onFavorite }: { values: SensitivityValues; historyId: number; isFavorited: boolean; onFavorite: () => void }) {
+  const copyAll = async () => { await navigator.clipboard?.writeText(valueLabels.map(item => `${item.label}: ${values[item.key]}`).join("\n")); toast.success("Sensibilidade copiada"); };
+  return <section className="result-card"><div className="result-header"><div><span className="tag tag-green"><BadgeCheck size={13} /> RESULTADO PRONTO</span><h2>Sensibilidade gerada</h2><p>Configuração salva no seu histórico · ID #{String(historyId).padStart(4, "0")}</p></div><div className="result-actions"><button className="ghost-button" onClick={copyAll}><Copy size={16} /> Copiar tudo</button><button className={`favorite-button ${isFavorited ? "active" : ""}`} onClick={onFavorite} aria-label="Favoritar"><Star size={19} fill={isFavorited ? "currentColor" : "none"} /></button></div></div><div className="values-grid">{valueLabels.map(item => <div className="value-item" key={item.key}><span className="value-icon">{item.icon}</span><span><b>{item.label}</b><small>sensibilidade</small></span><strong>{values[item.key]}</strong><button onClick={async () => { await navigator.clipboard?.writeText(String(values[item.key])); toast.success(`${item.label} copiado`); }} aria-label={`Copiar ${item.label}`}><Clipboard size={14} /></button></div>)}</div></section>;
+}
+
+function AuxilioPage({ onOpenGenerator }: { onOpenGenerator: () => void }) {
+  const [tab, setTab] = useState<"mira" | "arma" | "otimizacao" | "ajuda">("mira");
+  const [preferences, setPreferences] = useState<Record<string, boolean>>({});
+  const toggle = (key: string) => setPreferences(current => ({ ...current, [key]: !current[key] }));
+  const tabs = [
+    { id: "mira" as const, label: "MIRA", icon: Crosshair },
+    { id: "arma" as const, label: "PERFIL", icon: ShieldCheck },
+    { id: "otimizacao" as const, label: "PAINEL", icon: Grid3X3 },
+    { id: "ajuda" as const, label: "AJUDA", icon: CircleHelp },
+  ];
+  const descriptions = {
+    mira: "Preferências pessoais para sua rotina de treino",
+    arma: "Organize perfis de sensibilidade por estilo",
+    otimizacao: "Ajustes visuais deste painel",
+    ajuda: "Guias e acesso rápido ao gerador",
+  };
+  const settings = {
+    mira: [
+      { key: "warmup", label: "Lembrete de aquecimento", description: "Exibe um lembrete antes de uma sessão de treino" },
+      { key: "tracking", label: "Dicas de rastreamento", description: "Mostra sugestões de prática sem controlar o jogo" },
+      { key: "breaks", label: "Pausa entre partidas", description: "Lembrete local para fazer pausas regulares" },
+    ],
+    arma: [
+      { key: "balanced", label: "Perfil equilibrado", description: "Organização visual para uma configuração geral" },
+      { key: "precision", label: "Perfil de precisão", description: "Atalho para comparar valores do gerador" },
+    ],
+    otimizacao: [
+      { key: "compact", label: "Modo compacto", description: "Preferência visual guardada somente nesta tela" },
+      { key: "reduceMotion", label: "Reduzir animações", description: "Diminui animações da interface do painel" },
+      { key: "quietNotices", label: "Avisos discretos", description: "Exibe mensagens de orientação com menos destaque" },
+    ],
+  };
+  const heading = tab === "mira" ? "MIRA" : tab === "arma" ? "PERFIS" : tab === "otimizacao" ? "PAINEL" : "AJUDA";
+  return <div className="aux-page"><div className="aux-window"><aside className="aux-rail"><div className="aux-brand"><Crosshair size={19} /></div>{tabs.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)} title={item.label} aria-label={item.label}><item.icon size={18} /></button>)}<div className="aux-rail-line" /><span className="aux-status-dot" /></aside><section className="aux-content"><header className="aux-header"><div><span className="aux-kicker">BLATADOR DE XRC</span><h1>{heading}</h1><p>{descriptions[tab]}</p></div><button className="aux-close" onClick={onOpenGenerator} aria-label="Voltar ao gerador"><X size={17} /></button></header>{tab !== "ajuda" ? <><div className="aux-scope-note"><ShieldCheck size={16} /><span>Preferências locais: nada nesta aba altera ou controla o jogo.</span></div><div className="aux-panel-list">{settings[tab].map(item => <AuxToggle key={item.key} label={item.label} description={item.description} value={Boolean(preferences[item.key])} onClick={() => toggle(item.key)} />)}</div><button className="aux-open-generator" onClick={onOpenGenerator}><Crosshair size={16} /> Abrir gerador de sensibilidade <ChevronRight size={16} /></button></> : <div className="aux-help-content"><div className="aux-help-card"><span className="aux-help-icon"><SlidersHorizontal size={20} /></span><div><b>Como usar o gerador</b><p>Escolha o sistema, o aparelho e o nível de performance para criar valores de referência. Teste e ajuste manualmente conforme sua preferência.</p></div></div><div className="aux-help-card"><span className="aux-help-icon"><KeyRound size={20} /></span><div><b>Acesso e dispositivo</b><p>Sua key é vinculada ao primeiro dispositivo validado. Se precisar trocar de aparelho, entre em contato com o administrador.</p></div></div><div className="aux-help-safe"><ShieldCheck size={17} /><span>O painel não injeta arquivos, não modifica processos do jogo e não automatiza ações.</span></div><button className="aux-open-generator" onClick={onOpenGenerator}><Crosshair size={16} /> Abrir gerador de sensibilidade <ChevronRight size={16} /></button></div>}<footer className="aux-footer">Todos os direitos reservados <b>Blatador de Xrc</b></footer></section></div></div>;
+}
+function AuxToggle({ label, description, value, onClick }: { label: string; description: string; value: boolean; onClick: () => void }) { return <button className="aux-toggle-row" onClick={onClick} aria-pressed={value}><span><b>{label}</b><small>{description}</small></span><i className={value ? "on" : ""}><em /></i></button>; }
+
+function HistoryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
+  const query = favoritesOnly ? trpc.generator.favorites.useQuery() : trpc.generator.history.useQuery();
+  const favorite = trpc.generator.toggleFavorite.useMutation({ onSuccess: () => query.refetch() });
+  const records = query.data ?? [];
+  return <div className="page-view"><PageHeading kicker={favoritesOnly ? "COLEÇÃO PESSOAL" : "SEU ARQUIVO"} title={favoritesOnly ? "Favoritos" : "Histórico"} description={favoritesOnly ? "Suas configurações marcadas para acesso rápido." : "Todas as sensibilidades que você já gerou."} action={<button className="ghost-button desktop-action" onClick={() => query.refetch()}><RefreshCw size={16} /> Atualizar</button>} /><div className="list-toolbar"><span>{records.length} configuração{records.length === 1 ? "" : "ões"}</span><span className="toolbar-status"><span className="online-dot" /> SINCRONIZADO</span></div>{query.isLoading ? <LoadingList /> : records.length === 0 ? <EmptyState favoritesOnly={favoritesOnly} /> : <div className="history-list">{records.map(record => <div className="history-item" key={record.id}><div className={`history-os ${record.operatingSystem}`}>{record.operatingSystem === "android" ? <Smartphone size={20} /> : <Apple size={20} />}</div><div className="history-info"><div><b>Sensibilidade {record.device}</b><span>{OS_LABELS[record.operatingSystem]} · {PERFORMANCE_LABELS[record.performance]} · {formatDate(record.createdAt)}</span></div><span className="history-values">{record.general} <small>GERAL</small></span></div><button className={`favorite-button small ${record.favorite ? "active" : ""}`} onClick={() => favorite.mutate({ historyId: record.id })} aria-label="Favoritar"><Star size={17} fill={record.favorite ? "currentColor" : "none"} /></button><ChevronRight className="history-chevron" size={17} /></div>)}</div>}</div>;
+}
+
+function LoadingList() { return <div className="loading-list">{[1, 2, 3].map(item => <div key={item} className="skeleton-row"><span /><div><i /><i /></div></div>)}</div>; }
+function EmptyState({ favoritesOnly }: { favoritesOnly: boolean }) { return <div className="empty-state"><div><History size={24} /></div><h3>{favoritesOnly ? "Nenhum favorito ainda" : "Seu histórico está vazio"}</h3><p>{favoritesOnly ? "Marque uma configuração com estrela para encontrá-la aqui." : "Gere sua primeira sensibilidade e ela aparecerá aqui."}</p></div>; }
+
+function InfoPage() {
+  return <div className="page-view"><PageHeading kicker="BLATADOR DE XRC" title="Feito para evoluir." description="Precisão é detalhe. Controle é consistência." /><div className="info-grid"><section className="info-feature"><div className="info-icon"><Crosshair size={24} /></div><span className="tag tag-red">SENSITIVITY LAB</span><h2>Uma configuração<br /><em>no seu ritmo.</em></h2><p>O Blatador de Xrc combina seu sistema, aparelho e preferência de performance para criar uma base de sensibilidade equilibrada para seu estilo de jogo.</p><div className="info-points"><span><Check size={15} /> Gerador inteligente</span><span><Check size={15} /> Histórico sincronizado</span><span><Check size={15} /> Licença vinculada ao aparelho</span></div></section><section className="contact-panel"><span className="card-step">PRECISA DE AJUDA?</span><h3>Fale com a comunidade.</h3><p>Entre no nosso Discord para receber suporte e acompanhar novidades.</p><a className="contact-button" href="https://discord.gg/ysUScV4saF" target="_blank" rel="noreferrer"><span className="contact-letter">D</span><span><b>Entrar no Discord</b><small>Comunidade · suporte</small></span><ChevronRight size={17} /></a></section></div><div className="quote-strip"><span>“</span><p>O melhor setup é aquele que deixa você pensar menos na configuração e mais na partida.</p><span>BLATADOR XRC / 26</span></div></div>;
+}
+
+function ProfilePage({ session, onLogout }: { session: { username: string; planId: string; expiresAt: Date | string; deviceId?: string | null }; onLogout: () => void }) {
+  return <div className="page-view"><PageHeading kicker="SUA CONTA" title="Perfil & acesso" description="Gerencie os detalhes da sua licença." /><section className="profile-card"><div className="profile-main"><div className="profile-avatar">{String(session.username ?? "Usuário").slice(0, 1).toUpperCase()}</div><div><span className="tag tag-green"><BadgeCheck size={13} /> ACESSO ATIVO</span><h2>{session.username}</h2><p>Usuário desde 2026</p></div></div><div className="profile-grid"><div><span>PLANO ATUAL</span><b>{planName(session.planId)}</b><small>Licença individual</small></div><div><span>VALIDADE</span><b>{formatExpiry(session.expiresAt)}</b><small>até {formatDate(session.expiresAt)}</small></div><div><span>DISPOSITIVO</span><b>{session.deviceId ? "Vinculado" : "Pendente"}</b><small>HWID protegido</small></div></div></section><section className="security-card"><div className="security-icon"><LockKeyhole size={19} /></div><div><b>Seu acesso está protegido</b><p>Esta licença pode ser utilizada somente no primeiro dispositivo vinculado. Para trocar de aparelho, fale com o administrador.</p></div><BadgeCheck className="security-check" size={22} /></section><button className="logout-button" onClick={onLogout}><LogOut size={17} /> Sair da conta</button></div>;
+}
+
+function UserApp({ session, onLogout }: { session: { username: string; planId: string; expiresAt: Date | string; deviceId?: string | null }; onLogout: () => void }) {
+  const [view, setView] = useState<View>("home");
+  useEffect(() => { navigator.serviceWorker?.register("/sw.js").catch(() => undefined); }, []);
+  return <UserShell view={view} onChangeView={setView} session={session} onLogout={onLogout}>{view === "home" && <GeneratorPage session={session} />}{view === "auxilio" && <AuxilioPage onOpenGenerator={() => setView("home")} />}{view === "history" && <HistoryPage />}{view === "favorites" && <HistoryPage favoritesOnly />}{view === "info" && <InfoPage />}{view === "profile" && <ProfilePage session={session} onLogout={onLogout} />}</UserShell>;
+}
+
+function AdminShell({ children, view, onChangeView, onLogout }: { children: React.ReactNode; view: AdminView; onChangeView: (view: AdminView) => void; onLogout: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const go = (next: AdminView) => { onChangeView(next); setMenuOpen(false); };
+  return <div className="admin-shell"><button className="admin-menu-button" onClick={() => setMenuOpen(value => !value)} aria-label="Abrir menu"><Menu size={20} /></button>{menuOpen && <div className="admin-menu-popover"><b>BLATADOR DE XRC</b><button onClick={() => go("overview")}><Settings2 size={16} /> Config</button><button onClick={() => go("licenses")}><PackagePlus size={16} /> Gerenciar</button><button onClick={() => go("licenses")}><KeyRound size={16} /> Chaves</button></div>}<aside className="admin-sidebar"><div className="admin-logo"><AppLogo /><span className="admin-badge">ADMIN</span></div><div className="admin-nav"><span className="sidebar-section-label">CONTROLE</span><button className={view === "overview" ? "active" : ""} onClick={() => go("overview")}><LayoutDashboard size={18} /> Config</button><button className={view === "licenses" ? "active" : ""} onClick={() => go("licenses")}><KeyRound size={18} /> Chaves</button></div><div className="admin-sidebar-footer"><div className="admin-identity"><div className="admin-avatar"><Crown size={16} /></div><div><b>Administrador XRC</b><span>Administrador</span></div></div><button className="sidebar-logout" onClick={onLogout}><LogOut size={16} /> Sair</button></div></aside><main className="admin-main"><header className="admin-topbar"><div className="admin-mobile-logo"><AppLogo compact /></div><div><span className="topbar-kicker">CONTROL CENTER</span><h2>Olá, Administrador XRC <Crown size={18} /></h2></div><div className="admin-top-actions"><span className="admin-online"><span className="online-dot" /> SISTEMA ONLINE</span><button className="icon-button" onClick={() => toast.info("Painel atualizado")}><RefreshCw size={17} /></button><button className="admin-mobile-exit" onClick={onLogout}><LogOut size={16} /></button></div></header>{children}</main></div>;
+}
+
+function AdminOverview({ onGoLicenses }: { onGoLicenses: () => void }) {
+  const stats = trpc.admin.stats.useQuery();
+  const licenses = trpc.admin.licenses.useQuery();
+  const latest = licenses.data?.slice(0, 4) ?? [];
+  return <div className="admin-content"><div className="admin-heading"><div><span className="eyebrow"><span className="eyebrow-dot" /> VISÃO GERAL</span><h1>Seu painel de controle.</h1><p>Monitore acessos, licenças e a saúde do seu produto em um só lugar.</p></div><button className="primary-button" onClick={onGoLicenses}><PackagePlus size={17} /> Criar acesso</button></div><div className="stats-grid"><AdminStat label="Total de usuários" value={stats.data?.total ?? 0} detail="acessos criados" icon={Users} tone="red" /><AdminStat label="Licenças ativas" value={stats.data?.active ?? 0} detail="em funcionamento" icon={BadgeCheck} tone="green" /><AdminStat label="Chaves revogadas" value={stats.data?.revoked ?? 0} detail="não podem acessar" icon={Ban} tone="gray" /><AdminStat label="Dispositivos vinculados" value={latest.filter(item => item.deviceId).length} detail="últimos acessos" icon={Smartphone} tone="purple" /></div><div className="admin-overview-grid"><section className="admin-panel-card quick-panel"><div className="panel-title"><div><span className="card-step">ATIVIDADE</span><h3>Últimos acessos</h3></div><button className="text-button" onClick={onGoLicenses}>Ver todos <ChevronRight size={14} /></button></div>{latest.length === 0 ? <EmptyAdmin /> : <div className="admin-recent-list">{latest.map(item => <div key={item.id} className="admin-recent"><div className="mini-avatar">{String(item.username ?? item.accessKey ?? "Usuário").slice(0, 1).toUpperCase()}</div><div><b>{item.username}</b><span>{planName(item.planId)} · {item.deviceId ? "Dispositivo vinculado" : "Aguardando primeiro login"}</span></div><StatusPill status={item.status} /></div>)}</div>}</section><section className="admin-panel-card health-panel"><div className="panel-title"><div><span className="card-step">SAÚDE DO SISTEMA</span><h3>Operação segura</h3></div><ShieldCheck className="green-icon" size={20} /></div><div className="health-score"><div className="health-circle">100<span>%</span></div><div><b>Tudo funcionando</b><p>Banco de dados, autenticação e gerador operacionais.</p></div></div><div className="health-lines"><span><i /> API de licenças <b>Online</b></span><span><i /> Vínculo por HWID <b>Ativo</b></span><span><i /> Sessões seguras <b>Ativo</b></span></div></section></div></div>;
+}
+function AdminStat({ label, value, detail, icon: Icon, tone }: { label: string; value: number; detail: string; icon: React.ElementType; tone: string }) { return <div className="stat-card"><div className={`stat-icon ${tone}`}><Icon size={19} /></div><span>{label}</span><strong>{value}</strong><small>{detail}</small></div>; }
+function EmptyAdmin() { return <div className="admin-empty"><Users size={23} /><span>Nenhum acesso criado ainda.</span></div>; }
+function StatusPill({ status }: { status: string }) { return <span className={`status-pill ${status}`}><i />{status === "active" ? "Ativa" : status === "blocked" ? "Bloqueada" : "Revogada"}</span>; }
+
+function AdminLicenses() {
+  const licenses = trpc.admin.licenses.useQuery();
+  const stats = trpc.admin.stats.useQuery();
+  const create = trpc.admin.createLicense.useMutation({ onSuccess: data => { setCreatedKey(data?.accessKey ?? ""); setFormOpen(false); licenses.refetch(); stats.refetch(); toast.success("Acesso criado com sucesso"); }, onError: error => toast.error(error.message) });
+  const update = trpc.admin.updateLicense.useMutation({ onSuccess: () => { licenses.refetch(); stats.refetch(); toast.success("Licença atualizada"); }, onError: error => toast.error(error.message) });
+  const revoke = trpc.admin.revokeLicense.useMutation({ onSuccess: () => { licenses.refetch(); stats.refetch(); toast.success("Chave revogada"); } });
+  const remove = trpc.admin.deleteLicense.useMutation({ onSuccess: () => { licenses.refetch(); stats.refetch(); toast.success("Key excluída da MockAPI"); }, onError: error => toast.error(error.message) });
+  const block = trpc.admin.blockLicense.useMutation({ onSuccess: () => { licenses.refetch(); stats.refetch(); toast.success("Usuário bloqueado"); } });
+  const resetDevice = trpc.admin.resetDevice.useMutation({ onSuccess: () => { licenses.refetch(); toast.success("Vínculo de dispositivo resetado"); } });
+  const [formOpen, setFormOpen] = useState(false);
+  const [createdKey, setCreatedKey] = useState("");
+  const [username, setUsername] = useState("");
+  const [planId, setPlanId] = useState("weekly");
+  const [durationValue, setDurationValue] = useState(30);
+  const [durationUnit, setDurationUnit] = useState<(typeof DURATION_UNITS)[number]>("days");
+  const [query, setQuery] = useState("");
+  const filtered = (licenses.data ?? []).filter(item => String(item.username ?? item.accessKey ?? "").toLowerCase().includes(query.toLowerCase()) || String(item.accessKey ?? "").toLowerCase().includes(query.toLowerCase()));
+  const submit = (event: React.FormEvent) => { event.preventDefault(); create.mutate({ username, planId, durationValue, durationUnit }); };
+  return <div className="admin-content"><div className="admin-heading"><div><span className="eyebrow"><span className="eyebrow-dot" /> GESTÃO DE ACESSOS</span><h1>Licenças & usuários.</h1><p>Keys salvas na MockAPI: crie, revogue, bloqueie ou exclua permanentemente.</p></div><button className="primary-button" onClick={() => { setCreatedKey(""); setFormOpen(true); }}><PackagePlus size={17} /> Criar novo acesso</button></div>{createdKey && <div className="created-key-banner"><div className="notice-pulse"><KeyRound size={18} /></div><div><span>CHAVE GERADA · COPIE AGORA</span><b>{createdKey}</b></div><button onClick={async () => { await navigator.clipboard?.writeText(createdKey); toast.success("Chave copiada"); }}><Copy size={16} /> Copiar</button><button className="banner-close" onClick={() => setCreatedKey("")}><X size={16} /></button></div>}<div className="license-toolbar"><div className="search-shell"><Search size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar por usuário ou chave..." /></div><div className="toolbar-count"><b>{filtered.length}</b> acessos encontrados</div></div><div className="licenses-table"><div className="table-head"><span>USUÁRIO</span><span>PLANO</span><span>DISPOSITIVO</span><span>VALIDADE</span><span>STATUS</span><span>AÇÕES</span></div>{licenses.isLoading ? <LoadingList /> : filtered.length === 0 ? <EmptyAdmin /> : filtered.map(item => <div className="table-row" key={item.id}><div className="user-cell"><div className="mini-avatar">{String(item.username ?? item.accessKey ?? "Usuário").slice(0, 1).toUpperCase()}</div><div><b>{item.username}</b><span className="key-text">{item.accessKey}</span></div></div><div><select className="plan-select" value={item.planId} onChange={event => update.mutate({ id: item.id, planId: event.target.value })}>{PLAN_CATALOG.map(plan => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></div><div className="device-cell">{item.deviceId ? <><Smartphone size={15} /><span>Vinculado<br /><small>{String(item.deviceId).slice(0, 12)}...</small></span></> : <><Laptop size={15} /><span className="muted-text">Aguardando<br /><small>primeiro login</small></span></>}</div><div className="expiry-cell"><b>{formatDate(item.expiresAt)}</b><span>{formatExpiry(item.expiresAt)}</span></div><StatusPill status={item.status} /><div className="row-actions"><button title="Resetar dispositivo" onClick={() => resetDevice.mutate({ id: item.id })}><RotateCcw size={15} /></button><button title="Bloquear usuário" onClick={() => block.mutate({ id: item.id })}><Ban size={15} /></button><button title="Revogar chave" className="danger-action" onClick={() => revoke.mutate({ id: item.id })}><Trash2 size={15} /></button><button title="Excluir definitivamente da MockAPI" className="danger-action" onClick={() => { if (window.confirm("Excluir esta key da MockAPI definitivamente?")) remove.mutate({ id: item.id }); }}><X size={15} /></button></div></div>)}</div>{formOpen && <CreateLicenseModal username={username} setUsername={setUsername} planId={planId} setPlanId={setPlanId} durationValue={durationValue} setDurationValue={setDurationValue} durationUnit={durationUnit} setDurationUnit={setDurationUnit} onSubmit={submit} onClose={() => setFormOpen(false)} pending={create.isPending} />}</div>;
+}
+
+function CreateLicenseModal({ username, setUsername, planId, setPlanId, durationValue, setDurationValue, durationUnit, setDurationUnit, onSubmit, onClose, pending }: { username: string; setUsername: (value: string) => void; planId: string; setPlanId: (value: string) => void; durationValue: number; setDurationValue: (value: number) => void; durationUnit: (typeof DURATION_UNITS)[number]; setDurationUnit: (value: (typeof DURATION_UNITS)[number]) => void; onSubmit: (event: React.FormEvent) => void; onClose: () => void; pending: boolean }) {
+  return <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><div className="modal-card"><div className="modal-heading"><div><span className="eyebrow"><span className="eyebrow-dot" /> NOVO ACESSO</span><h2>Criar uma licença.</h2></div><button className="icon-button" onClick={onClose}><X size={17} /></button></div><p className="modal-description">Escolha um usuário e o tempo de acesso. A chave aleatória será criada automaticamente.</p><form onSubmit={onSubmit} className="admin-form"><label><span>Nome de usuário</span><div className="input-shell"><UserRound size={16} /><input value={username} onChange={event => setUsername(event.target.value)} placeholder="ex: player_pro" required minLength={2} /></div></label><label><span>Plano</span><div className="input-shell"><Crown size={16} /><select value={planId} onChange={event => setPlanId(event.target.value)}>{PLAN_CATALOG.map(plan => <option key={plan.id} value={plan.id}>{plan.name} — {plan.description}</option>)}</select></div></label><div className="form-two"><label><span>Duração</span><div className="input-shell"><Clock3 size={16} /><input type="number" min={1} max={3650} value={durationValue} onChange={event => setDurationValue(Number(event.target.value))} required /></div></label><label><span>Unidade</span><div className="input-shell"><Globe2 size={16} /><select value={durationUnit} onChange={event => setDurationUnit(event.target.value as (typeof DURATION_UNITS)[number])}>{DURATION_UNITS.map(unit => <option key={unit} value={unit}>{unit === "days" ? "Dias" : unit === "weeks" ? "Semanas" : unit === "months" ? "Meses" : "Anos"}</option>)}</select></div></label></div><div className="modal-info"><ShieldCheck size={16} /><span>A chave só aparecerá neste painel administrativo. O usuário fará login com nome + chave.</span></div><div className="modal-actions"><button type="button" className="ghost-button" onClick={onClose}>Cancelar</button><button type="submit" className="primary-button" disabled={pending}>{pending ? <><RefreshCw size={16} className="spin" /> Criando...</> : <><KeyRound size={16} /> Criar e gerar chave</>}</button></div></form></div></div>;
+}
+
+function AdminApp({ onLogout }: { onLogout: () => void }) {
+  const [view, setView] = useState<AdminView>("overview");
+  return <AdminShell view={view} onChangeView={setView} onLogout={onLogout}>{view === "overview" ? <AdminOverview onGoLicenses={() => setView("licenses")} /> : <AdminLicenses />}</AdminShell>;
+}
+
+export default function Home() {
+  const me = trpc.auth.me.useQuery(undefined, { retry: false });
+  const logout = trpc.auth.logout.useMutation({ onSuccess: () => { localStorage.removeItem("rbxis_session_token_v3"); localStorage.removeItem("rbxis_admin_mode_v3"); me.refetch(); window.location.reload(); } });
+  const rawSession = me.data;
+  const session = rawSession && rawSession.role && typeof rawSession.username === "string" && rawSession.username.trim() ? rawSession : null;
+  useEffect(() => { if (!me.isLoading && !session) localStorage.removeItem("rbxis_session_token_v3"); }, [me.isLoading, session]);
+  const handleLogout = () => logout.mutate();
+  const adminMode = localStorage.getItem("rbxis_admin_mode_v3") === "1" && Boolean(localStorage.getItem("rbxis_session_token_v3"));
+  if (me.isLoading) return <LoadingScreen />;
+  if (adminMode || session?.role === "admin") return <AdminApp onLogout={handleLogout} />;
+  if (!session) return <LoginScreen />;
+  return <UserApp session={session} onLogout={handleLogout} />;
+}
+
+declare global {
+  interface BeforeInstallPromptEvent extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>; }
+}
