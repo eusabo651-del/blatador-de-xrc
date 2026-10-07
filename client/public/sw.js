@@ -1,5 +1,14 @@
-const CACHE_NAME = "blatador-xrc-shell-v1";
-const APP_SHELL = ["/", "/manifest.json"];
+const CACHE_NAME = "blatador-xrc-shell-v2";
+const APP_SHELL = [
+  "/",
+  "/manifest.json",
+  "/site-background.webp",
+  "/apple-touch-icon.png",
+  "/favicon-photo-64.png",
+  "/pwa-icon-192.png",
+  "/pwa-icon-512.png",
+  "/pwa-icon-512-maskable.png",
+];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));

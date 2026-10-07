@@ -705,3 +705,40 @@ html, body { background: #050505; }
   .aux-module b { font-size: 8px; }
   .aux-module small { font-size: 6px; }
 }
+
+
+/* Foto enviada: fundo global fixo e escurecido para conservar contraste. */
+html, body { background: #040404 !important; }
+body { position: relative; }
+body::before {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background-color: #040404;
+  background-image: linear-gradient(180deg, rgba(0,0,0,.58), rgba(0,0,0,.66)), url("/site-background.webp");
+  background-position: center, center 42%;
+  background-repeat: no-repeat;
+  background-size: cover, auto 100vh;
+}
+#root { position: relative; z-index: 1; min-height: 100vh; min-height: 100dvh; }
+.login-shell, .loading-screen, .app-shell { background: transparent !important; }
+.login-shell::before { opacity: .08; }
+.app-sidebar { background: rgba(5,5,5,.76); backdrop-filter: blur(12px); }
+.app-main, .page-view { background: transparent !important; }
+.login-card-wrap { background: linear-gradient(145deg, #4a414e, #242328 48%, #644276); }
+.login-card-topline { background: rgba(12,12,14,.9); }
+.login-card { background: rgba(13,13,15,.88); backdrop-filter: blur(12px); }
+.config-card, .result-card, .profile-card, .security-card, .contact-panel { background-color: rgba(12,12,14,.82); backdrop-filter: blur(10px); }
+.hero-panel { background: radial-gradient(circle at 77% 45%, rgba(69,38,80,.48) 0, transparent 25%), linear-gradient(115deg, rgba(18,17,20,.84), rgba(10,10,11,.8) 63%); backdrop-filter: blur(8px); }
+.info-feature { background: radial-gradient(circle at 82% 18%, rgba(36,19,45,.7) 0, transparent 28%), rgba(10,10,11,.82); backdrop-filter: blur(10px); }
+.aux-window { background: rgba(5,5,5,.86); backdrop-filter: blur(10px); }
+.aux-rail { background: rgba(5,5,5,.82); }
+.aux-content { background: rgba(8,8,8,.8); }
+.mobile-header, .mobile-top-nav { background: rgba(5,5,5,.86); backdrop-filter: blur(12px); }
+@media (max-width: 760px) {
+  body::before { background-position: center, center 40%; background-size: cover, auto 100dvh; }
+  .app-sidebar { backdrop-filter: none; }
+  .mobile-header, .mobile-top-nav { background: rgba(5,5,5,.82); }
+}
